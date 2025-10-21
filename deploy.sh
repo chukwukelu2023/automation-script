@@ -77,11 +77,11 @@ fi
 
 # SSH into the Remote Server
 
-echo "Testinng connection to server ...."
+echo "Testing connection to server ...."
 
 ping $server_ip -c 5
 
-echo "Connectinh to server
+echo "Connectinh to server..."
 
 chmod 600 "$server_key_path"
 
