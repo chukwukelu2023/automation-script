@@ -16,6 +16,53 @@ read -p "Enter Server IP: " server_ip
 read -p "Enter Server Key Path: " server_key_path
 read -p "Enter Application Port: " app_port
 
+
+# Validate repo URL
+if [[ ! "$repo_url" =~ ^https://github\.com/.+/.+\.git$ ]]; then
+  echo "❌ Invalid GitHub repository URL: $repo_url"
+  exit 1
+fi
+
+# Validate PAT
+if [[ -z "$repo_pat" ]]; then
+  echo "❌ GitHub Personal Access Token cannot be empty"
+  exit 1
+fi
+
+# Validate username
+if [[ -z "$server_user" ]]; then
+  echo "❌ Server username cannot be empty"
+  exit 1
+fi
+
+# Validate IP address format
+if [[ ! "$server_ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+  echo "❌ Invalid IP address: $server_ip"
+  exit 1
+else
+  # Check connectivity
+  if ! ping -c 2 -W 2 "$server_ip" &> /dev/null; then
+    echo "❌ Server $server_ip is unreachable"
+    exit 1
+  fi
+fi
+
+# Validate SSH key path
+if [[ ! -f "$server_key_path" ]]; then
+  echo "❌ SSH key file not found at: $server_key_path"
+  exit 1
+fi
+chmod 600 "$server_key_path"
+
+# Validate port
+if ! [[ "$app_port" =~ ^[0-9]+$ ]] || (( app_port < 1 || app_port > 65535 )); then
+  echo "❌ Invalid port number: $app_port (must be 1–65535)"
+  exit 1
+fi
+
+echo "✅ All input validations passed."
+
+
 branch_name=${branch_name:-main}
 
 repo_url_no_git=${repo_url%.git}
