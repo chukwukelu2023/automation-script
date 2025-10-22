@@ -5,8 +5,8 @@ timestamp=$(date +"%Y%m%d_%H%M%S")
 log_file="deploy_${timestamp}.log"
 exec > >(tee -a "$log_file") 2>&1
 
-echo "🚀 Starting deployment at $(date)"
-echo "📁 Log file: $log_file"
+echo "Starting deployment at $(date)"
+echo "Log file: $log_file"
 
 read -p "Enter repo URL: " repo_url
 read -p "Enter Repo PAT: " repo_pat
@@ -17,50 +17,44 @@ read -p "Enter Server Key Path: " server_key_path
 read -p "Enter Application Port: " app_port
 
 
-# Validate repo URL
 if [[ ! "$repo_url" =~ ^https://github\.com/.+/.+\.git$ ]]; then
-  echo "❌ Invalid GitHub repository URL: $repo_url"
+  echo "Invalid GitHub repository URL: $repo_url"
   exit 1
 fi
 
-# Validate PAT
 if [[ -z "$repo_pat" ]]; then
-  echo "❌ GitHub Personal Access Token cannot be empty"
+  echo "GitHub Personal Access Token cannot be empty"
   exit 1
 fi
 
-# Validate username
 if [[ -z "$server_user" ]]; then
-  echo "❌ Server username cannot be empty"
+  echo "Server username cannot be empty"
   exit 1
 fi
 
-# Validate IP address format
 if [[ ! "$server_ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-  echo "❌ Invalid IP address: $server_ip"
+  echo "Invalid IP address: $server_ip"
   exit 1
 else
-  # Check connectivity
   if ! ping -c 2 -W 2 "$server_ip" &> /dev/null; then
-    echo "❌ Server $server_ip is unreachable"
+    echo "Server $server_ip is unreachable"
     exit 1
   fi
 fi
 
-# Validate SSH key path
 if [[ ! -f "$server_key_path" ]]; then
-  echo "❌ SSH key file not found at: $server_key_path"
+  echo "SSH key file not found at: $server_key_path"
   exit 1
 fi
 chmod 600 "$server_key_path"
 
-# Validate port
+
 if ! [[ "$app_port" =~ ^[0-9]+$ ]] || (( app_port < 1 || app_port > 65535 )); then
-  echo "❌ Invalid port number: $app_port (must be 1–65535)"
+  echo "Invalid port number: $app_port (must be 1–65535)"
   exit 1
 fi
 
-echo "✅ All input validations passed."
+echo "All input validations passed."
 
 
 branch_name=${branch_name:-main}
@@ -69,27 +63,26 @@ repo_url_no_git=${repo_url%.git}
 repo_name=${repo_url_no_git##*/}
 
 if [ -d "$repo_name" ]; then
-    echo "📂 Updating existing repository $repo_name..."
+    echo "Updating existing repository $repo_name..."
     cd "$repo_name"
     git checkout "$branch_name"
     git pull origin "$branch_name"
 else
-    echo "📦 Cloning repository..."
+    echo "Cloning repository..."
     git clone -b "$branch_name" "https://${repo_pat}@${repo_url#https://}"
     cd "$repo_name"
 fi    
 
 if ! [ -f "docker-compose.yml" ] && ! [ -f "Dockerfile" ]; then
-    echo "❌ No Dockerfile or docker-compose.yml found!"
+    echo "No Dockerfile or docker-compose.yml found!"
     exit 1
 fi
 
 if ! ping -c 2 "$server_ip" >/dev/null 2>&1; then
-  echo "❌ Server $server_ip not reachable"
+  echo "Server $server_ip not reachable"
   exit 1
 fi
 
-chmod 600 "$server_key_path"
 
 # Copy files to server
 ssh -i "$server_key_path" "$server_user@$server_ip" "rm -rf ~/app && mkdir ~/app"
@@ -144,7 +137,7 @@ fi
 NGINX_CONF="/etc/nginx/sites-available/app.conf"
 NGINX_LINK="/etc/nginx/sites-enabled/app.conf"
 
-echo "🌐 Configuring Nginx reverse proxy..."
+echo "Configuring Nginx reverse proxy..."
 sudo bash -c "cat > \$NGINX_CONF" <<'EOF'
 server {
     listen 80;
@@ -165,7 +158,7 @@ sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl restart nginx
 
 curl -I http://localhost || true
-echo "✅ Deployment complete on \$(hostname)"
+echo "Deployment complete on \$(hostname)"
 ENDSSH
 
-echo "✅ Deployment finished at $(date)"
+echo "Deployment finished at $(date)"
